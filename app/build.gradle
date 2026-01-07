@@ -1,6 +1,16 @@
-plugins {
-    id 'com.android.application'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // This tells Gradle exactly where to find the Android plugin
+        classpath 'com.android.tools.build:gradle:8.2.2'
+    }
 }
+
+// We use 'apply plugin' instead of 'plugins {}' to avoid the settings.gradle error
+apply plugin: 'com.android.application'
 
 android {
     namespace 'com.recorder'
@@ -13,4 +23,13 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Add any dependencies you might need later here
+dependencies {
 }
