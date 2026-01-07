@@ -103,7 +103,6 @@ public class MainActivity extends Activity {
             String qual = bitrateSpinner.getSelectedItem().toString();
             i.putExtra("bitrate", qual.equals("High") ? 8000000 : (qual.equals("Medium") ? 4000000 : 1500000));
             
-            // Critical for Android 10+: Foreground Service needs to start immediately
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(i);
             } else {
@@ -123,7 +122,6 @@ public class MainActivity extends Activity {
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
             createNotificationChannel();
-            // Notification is REQUIRED for screen recording
             startForeground(1, new Notification.Builder(this, "RecChannel")
                     .setContentTitle("Recording Screen")
                     .setSmallIcon(android.R.drawable.ic_media_play)
@@ -137,22 +135,23 @@ public class MainActivity extends Activity {
             try {
                 mediaRecorder = new MediaRecorder();
                 mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
-                // No audio for now to prevent crashes if permission denied
                 mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
                 mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
                 mediaRecorder.setVideoEncodingBitRate(bitrate);
                 mediaRecorder.setVideoFrameRate(fps);
-                mediaRecorder.setVideoSize(720, 1280); // Fixed resolution for stability
+                mediaRecorder.setVideoSize(720, 1280); 
 
-                // --- NEW SAVING LOGIC (MediaStore) ---
+                // --- MediaStore Saving ---
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.Video.Media.DISPLAY_NAME, "Rec_" + System.currentTimeMillis() + ".mp4");
                 values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
                 values.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/ScreenRecorder");
                 
                 Uri uri = getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values);
-                ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
-                mediaRecorder.setOutputFile(pfd.getFileDescriptor());
+                if (uri != null) {
+                    ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
+                    mediaRecorder.setOutputFile(pfd.getFileDescriptor());
+                }
                 
                 mediaRecorder.prepare();
 
@@ -166,7 +165,6 @@ public class MainActivity extends Activity {
                 mediaRecorder.start();
             } catch (Exception e) {
                 e.printStackTrace();
-                stopSelf(); // Stop service if setup fails
             }
             return START_STICKY;
         }
@@ -186,7 +184,7 @@ public class MainActivity extends Activity {
                     mediaRecorder.reset();
                 }
                 if (projection != null) projection.stop();
-            } catch(Exception e) {} // Ignore stop errors
+            } catch(Exception e) {}
             super.onDestroy();
         }
 
@@ -194,51 +192,7 @@ public class MainActivity extends Activity {
         public IBinder onBind(Intent intent) { return null; }
     }
 }
-        layout.addView(createLabel("Frame Rate (FPS):"));
-        fpsSpinner = new Spinner(this);
-        ArrayAdapter<String> fpsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"30", "60", "90"});
-        fpsSpinner.setAdapter(fpsAdapter);
-        layout.addView(fpsSpinner);
-
-        // Bitrate (Quality) Selector
-        layout.addView(createLabel("Quality (Bitrate):"));
-        bitrateSpinner = new Spinner(this);
-        ArrayAdapter<String> bitAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"High (8Mbps)", "Medium (4Mbps)", "Low (1Mbps)"});
-        bitrateSpinner.setAdapter(bitAdapter);
-        layout.addView(bitrateSpinner);
-
-        // Record Button
-        recordBtn = new ToggleButton(this);
-        recordBtn.setText("Start Recording");
-        recordBtn.setTextOn("Stop Recording");
-        recordBtn.setTextOff("Start Recording");
-        layout.addView(recordBtn);
-
-        setContentView(layout);
-
-        // --- 2. Logic ---
-        projectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-
-        recordBtn.setOnClickListener(v -> {
-            if (recordBtn.isChecked()) {
-                // User clicked START -> Ask Permission
-                startActivityForResult(projectionManager.createScreenCaptureIntent(), 101);
-            } else {
-                // User clicked STOP
-                stopService(new Intent(this, RecorderService.class));
-            }
-        });
-    }
-
-    private TextView createLabel(String text) {
-        TextView tv = new TextView(this);
-        tv.setText(text);
-        tv.setPadding(0, 40, 0, 10);
-        return tv;
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+questCode, int resultCode, Intent data) {
         if (requestCode == 101 && resultCode == RESULT_OK) {
             // Permission Granted -> Start the Service
             Intent i = new Intent(this, RecorderService.class);
