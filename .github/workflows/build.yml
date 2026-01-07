@@ -12,11 +12,14 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
       
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+      
       - name: Build APK
         run: |
-          chmod +x gradlew || true
-          # Create a dummy gradlew if missing (Common issue with manual file creation)
+          # Generate the wrapper so gradlew exists
           gradle wrapper
+          chmod +x gradlew
           ./gradlew assembleDebug
           
       - uses: actions/upload-artifact@v4
