@@ -26,3 +26,4 @@ jobs:
         with:
           name: Pro-Recorder-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+
